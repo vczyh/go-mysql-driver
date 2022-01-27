@@ -22,7 +22,8 @@ func (stmt *Stmt) Close() error {
 		return nil
 	}
 
-	pkt := command.NewStmtClose(stmt.id)
+	stmtIdData := types.FixedLengthInteger.Dump(uint64(stmt.id), 4)
+	pkt := command.New(generic.ComStmtClose, stmtIdData)
 	if err := stmt.conn.mysqlConn.WriteCommandPacket(pkt); err != nil {
 		return err
 	}

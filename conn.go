@@ -40,7 +40,7 @@ func createConnection(config *config) (driver.Conn, error) {
 }
 
 func (c *conn) Prepare(query string) (driver.Stmt, error) {
-	pkt := command.NewStmtPrepare(query)
+	pkt := command.New(generic.ComStmtPrepare, []byte(query))
 	if err := c.mysqlConn.WriteCommandPacket(pkt); err != nil {
 		return nil, err
 	}
