@@ -80,6 +80,70 @@ func (c *conn) Prepare(query string) (driver.Stmt, error) {
 	}
 }
 
+func (c *conn) Exec(query string, args []driver.Value) (driver.Result, error) {
+	if len(args) > 0 {
+		return nil, fmt.Errorf("unsupport args in query, please use prepare")
+	}
+
+	pkt := command.New(generic.ComQuery, []byte(query))
+	if err := c.mysqlConn.WriteCommandPacket(pkt); err != nil {
+		return nil, err
+	}
+
+	columnCount, err := c.readExecuteResponseFirstPacket()
+	if err != nil {
+		return nil, err
+	}
+
+	if columnCount > 0 {
+		// columnCount * ColumnDefinition packet
+		if err := c.mysqlConn.ReadUntilEOFPacket(); err != nil {
+			return nil, err
+		}
+
+		// columnCount * BinaryResultSetRow packet
+		if err := c.mysqlConn.ReadUntilEOFPacket(); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := c.getResult(); err != nil {
+		return nil, err
+	}
+
+	return &result{
+		affectedRows: int64(c.mysqlConn.AffectedRows()),
+		lastInsertId: int64(c.mysqlConn.LastInsertId()),
+	}, nil
+}
+
+func (c *conn) Query(query string, args []driver.Value) (driver.Rows, error) {
+	if len(args) > 0 {
+		return nil, fmt.Errorf("unsupport args in query, please use prepare")
+	}
+
+	pkt := command.New(generic.ComQuery, []byte(query))
+	if err := c.mysqlConn.WriteCommandPacket(pkt); err != nil {
+		return nil, err
+	}
+
+	columnCount, err := c.readExecuteResponseFirstPacket()
+	if err != nil {
+		return nil, err
+	}
+
+	rows := new(textRows)
+	rows.conn = c
+
+	if columnCount > 0 {
+		rows.columns, err = c.readColumns(columnCount)
+	} else {
+		rows.done = true
+	}
+
+	return rows, err
+}
+
 func (c *conn) Close() error {
 	return c.mysqlConn.Close()
 }
@@ -163,4 +227,10 @@ func (c *conn) readColumns(count int) ([]*command.ColumnDefinition, error) {
 	}
 
 	return columns, nil
+}
+
+// TODO
+func (c *conn) buildQuery(query string, args []driver.Value) (string, error) {
+	// valid
+	return "", nil
 }

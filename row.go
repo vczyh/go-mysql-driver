@@ -77,5 +77,41 @@ func (r *binaryRows) Next(dest []driver.Value) error {
 			dest[i] = rowPkt.Values[i].Value()
 		}
 	}
+
+	return nil
+}
+
+type textRows struct {
+	resultSet
+}
+
+func (r *textRows) Next(dest []driver.Value) error {
+	if r.done {
+		return io.EOF
+	}
+
+	data, err := r.conn.mysqlConn.ReadPacket()
+	if err != nil {
+		return err
+	}
+
+	switch {
+	case generic.IsErr(data):
+		return r.conn.mysqlConn.HandleOKErrPacket(data)
+
+	case generic.IsEOF(data):
+		r.done = true
+		return io.EOF
+
+	default:
+		rowPkt, err := command.ParseTextResultSetRow(data, r.columns, r.conn.config.loc)
+		if err != nil {
+			return err
+		}
+		for i := range dest {
+			dest[i] = rowPkt.Values[i].Value()
+		}
+	}
+
 	return nil
 }

@@ -48,7 +48,7 @@ func TestPing(t *testing.T) {
 
 func TestExecute(t *testing.T) {
 	for i := 0; i < 2; i++ {
-		rs, err := db.Exec("INSERT INTO db1.tb (name) VALUES (?)", "zhang")
+		rs, err := db.Exec("SET @name = 43")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -145,23 +145,29 @@ func TestTime(t *testing.T) {
 		t.Fatalf("create time test table failed: %v", err)
 	}
 
-	_, err = db.Exec("INSERT INTO test.tbl_time VALUES (?,?,?,?)", "2021-01-24", "-5 13:45:30", "2021-01-24 13:45:30", "2021-01-24 13:45:30")
+	stmt, err := db.Prepare("INSERT INTO test.tbl_time VALUES (?,?,?,?)")
+	if err != nil {
+		t.Fatalf("db.Prepare(): %v", err)
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec("2021-01-24", "-5 13:45:30", "2021-01-24 13:45:30", "2021-01-24 13:45:30")
 	if err != nil {
 		t.Fatalf("insert failed: %v", err)
 	}
 
 	// with micro second
-	_, err = db.Exec("INSERT INTO test.tbl_time VALUES (?,?,?,?)", "2021-01-24", "-5 13:45:30.123", "2021-01-24 13:45:30.123", "2021-01-24 13:45:30.123")
+	_, err = stmt.Exec("2021-01-24", "-5 13:45:30.123", "2021-01-24 13:45:30.123", "2021-01-24 13:45:30.123")
 	if err != nil {
 		t.Fatalf("insert failed: %v", err)
 	}
 
-	_, err = db.Exec("INSERT INTO test.tbl_time VALUES (?,?,?,?)", "2021-01-24", "-5 13:45:30.123456", "2021-01-24 13:45:30.123456", "2021-01-24 13:45:30.123456")
+	_, err = stmt.Exec("2021-01-24", "-5 13:45:30.123456", "2021-01-24 13:45:30.123456", "2021-01-24 13:45:30.123456")
 	if err != nil {
 		t.Fatalf("insert failed: %v", err)
 	}
 
-	_, err = db.Exec("INSERT INTO test.tbl_time VALUES (?,?,?,?)", "2021-01-24", "-34 13:45:30.123456", "2021-01-24 13:45:30.123456", "2021-01-24 13:45:30.123456")
+	_, err = stmt.Exec("2021-01-24", "34 13:45:30.123456", "2021-01-24 13:45:30.123456", "2021-01-24 13:45:30.123456")
 	if err != nil {
 		t.Fatalf("insert failed: %v", err)
 	}

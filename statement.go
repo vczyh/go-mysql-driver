@@ -209,7 +209,7 @@ func (stmt *Stmt) writeExecutePacket(args []driver.Value) (err error) {
 				if v.IsZero() {
 					b = append(b, "0000-00-00 00:00:00.000000"...)
 				} else {
-					b = append(b, v.Format("2006-01-02 15:04:05.000000")...)
+					b = append(b, v.In(stmt.conn.config.loc).Format("2006-01-02 15:04:05.000000")...)
 				}
 
 				pkt.ParamValue = append(pkt.ParamValue, types.LengthEncodedInteger.Dump(uint64(len(b)))...)
